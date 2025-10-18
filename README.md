@@ -1,5 +1,7 @@
 
-![](https://github.com/mizhare/dog-api-pipeline/blob/main/images/header3-alinhado.png)
+<p align=center>
+  <img width="100%" src="https://github.com/mizhare/dog-api-pipeline/blob/main/images/header3-alinhado.png" />
+</p>
 
 ## Overview
 
@@ -177,7 +179,9 @@ def lambda_handler(event, context):
 
 ### 3. Step Functions Workflow
 
-![](https://github.com/mizhare/dog-api-pipeline/blob/main/images/stepfunctions_graph.png)
+<p align=center>
+  <img src="https://github.com/mizhare/dog-api-pipeline/blob/main/images/stepfunctions_graph.png" />
+</p>
 
 #### Workflow States
 
