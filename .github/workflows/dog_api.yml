@@ -22,4 +22,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY_DOG: ${{ secrets.AWS_SECRET_ACCESS_KEY_DOG }}
           AWS_BUCKET_DOG: ${{ secrets.AWS_BUCKET_DOG }}
           AWS_REGION: "us-east-1"
-        run: python "challenge 7 - advanced and intermediate resources/dog-api-pipeline/ingest_dog.py"
+        run: python ingest_dog.py
