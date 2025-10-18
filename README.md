@@ -231,7 +231,10 @@ def lambda_handler(event, context):
         - PublishPNGAlert: published a message to SNS.
     3. Confirmed that SNS subscribers received the message successfully.
 - **Outcome:** Successfully confirmed alert mechanism works for extensions detection.
-    
+<p align=center>
+  <img src="https://github.com/mizhare/dog-api-pipeline/blob/main/images/email_sns.png" />
+</p>
+
 ---
 
 ### 5. IAM Permissions - Roles and User Functions 
