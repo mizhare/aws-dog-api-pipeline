@@ -3,7 +3,7 @@
 
 ## Overview
 
-This project was developed as the deliverable for the challenge “Intermediate and Advanced AWS Services” (Module 7).
+This project was developed as the deliverable for the “Intermediate and Advanced AWS Services” challenge (Module 7) in the Santander Code Girls 2025 Bootcamp.
 
 The objective was to design a realistic workflow that demonstrates how multiple AWS services can be orchestrated to build an end-to-end serverless data pipeline, applying concepts such as Lambda Functions, Step Functions, S3 storage, SNS notifications, and DynamoDB logging.
 
