@@ -1,0 +1,25 @@
+name: Dog API Ingestion
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *' # hourly
+
+jobs:
+  ingest_dog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install requests boto3
+      - name: Run ingestion
+        env:
+          AWS_ACCESS_KEY_ID_DOG: ${{ secrets.AWS_ACCESS_KEY_ID_DOG }}
+          AWS_SECRET_ACCESS_KEY_DOG: ${{ secrets.AWS_SECRET_ACCESS_KEY_DOG }}
+          AWS_BUCKET_DOG: ${{ secrets.AWS_BUCKET_DOG }}
+          AWS_REGION: "us-east-1"
+        run: python "challenge 7 - advanced and intermediate resources/dog-api-pipeline/ingest_dog.py"
