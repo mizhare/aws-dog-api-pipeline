@@ -13,8 +13,8 @@ For this challenge, I decided to create a pipeline that interacts with a public 
 
 1. **Fetch Dog Image**: A Lambda function requests a random dog image from the API.
 2. **Upload to S3**: The image is ingested and stored in an S3 bucket.
-3. **File Type Check**: The Step Functions workflow checks whether the uploaded image is a .png, which is not expected in this pipeline.
-4. **Alerting**: If a .png file is detected, a dedicated Lambda function triggers an SNS notification to alert the user.
+3. **File Type Check**: The Step Functions workflow checks whether the uploaded file is a non-image file, which is not expected in this pipeline.
+4. **Alerting**: If a non-image file file is detected, a dedicated Lambda function triggers an SNS notification to alert the user.
 5. **Logging**: Finally, all image metadata (image name, URL, file type, timestamp, and alert status) is stored in a DynamoDB table for audit and monitoring purposes.
     
 The main focus of this project was to show how to orchestrate multiple AWS services in a controlled workflow. It demonstrates the integration of:
@@ -22,7 +22,7 @@ The main focus of this project was to show how to orchestrate multiple AWS servi
 - **Lambda Functions**: for serverless execution of API requests, image ingestion, alerting, and logging.
 - **Step Functions**: for coordinating tasks, handling branching logic, and sequencing operations.
 - **S3**: for scalable and durable storage of ingested images.
-- **SNS**: for real-time notifications when unexpected events (like a .png upload) occur.
+- **SNS**: for real-time notifications when unexpected events (like a .pdf upload) occur.
 - **DynamoDB**: for structured storage of metadata, enabling traceability and potential analytics on uploaded files.
 
 Additionally, the project includes a Python ingestion script (ingest_dog.py), which automates the fetch-and-upload logic for local testing or direct execution outside of the Step Functions workflow.
@@ -97,17 +97,17 @@ def lambda_handler(event, context):
 
 ---
 
-#### AlertPNG
+#### AlertNotImage
 
-- **Purpose:** Triggered when a .png extension is detected in the workflow (upload of PNG images).
+- **Purpose:** Triggered when a non-image file extension is detected in the workflow (upload of csv, pdf..).
 - **Behavior:** Can send a message to an SNS topic or log the detection.
 - **Notes:** Used mainly for demonstration and testing SNS notifications.
 
 - **Python Implementation:**
 ```python
 def lambda_handler(event, context):
-    print("⚠️ PNG detected:", event.get("uploaded_image"))
-    return {"status": "alert", "message": "PNG detected", "image": event.get("uploaded_image")}
+    print("⚠️ Non-image file detected:", event.get("uploaded_image"))
+    return {"status": "alert", "message": "Non-image file detected", "image": event.get("uploaded_image")}
 
 ```
 
@@ -127,7 +127,7 @@ def lambda_handler(event, context):
     - **image_url**: Full S3 URL for easy access.
     - **upload_timestamp**: Time when the Step Function reached this state.
     - **file_type**: Image extension (e.g., jpg or png).
-    - **alert_triggered**: Boolean flag indicating if an alert (such as a PNG detection) was triggered.
+    - **alert_triggered**: Boolean flag indicating if an alert (such as a CSV detection) was triggered.
         
 - **Notes:**
     - The Lambda execution role must include the dynamodb:PutItem permission for the table DogImageUploads.
@@ -193,25 +193,28 @@ def lambda_handler(event, context):
 2. **LogToDynamoDB (Task)**
 - Invokes the Lambda function **LogToDynamoDB**, which writes metadata (such as image name, timestamp, and bucket location) to the **DogImageUploads** DynamoDB table.
 - Ensures every upload is registered in a persistent NoSQL database for tracking and analytics.
-- On success, transitions to **CheckIfPNG**.
+- On success, transitions to **CheckIfImage**.
         
-3. **CheckIfPNG (Choice)**
+3. **CheckIfImage (Choice)**
     - Evaluates the uploaded image filename.
-    - If the filename ends with .png: transition to AlertPNG.
+    - If the filename does not end with .jpg, .jpeg or .png: transition to AlertNotImage.
     - Otherwise: transition to SuccessState.
 
-![](https://github.com/mizhare/dog-api-pipeline/blob/main/images/check_ifpng.png)
+<p align=center>
+  <img src="https://github.com/mizhare/aws-dog-api-pipeline/blob/main/images/check_ifimage.png" />
+</p>
+
         
-4. **AlertPNG (Task)**
-    - Calls Lambda AlertPNG to prepare notification data.
-    - Passes output to PublishPNGAlert.
+4. **AlertNotImage (Task)**
+    - Calls Lambda AlertNotImage to prepare notification data.
+    - Passes output to PublishNotImageAlert.
         
-5. **PublishPNGAlert (Task)**
+5. **PublishNotImageAlert (Task)**
     - Uses **SNS integration** (arn:aws:states:::sns:publish) to publish an alert message.
     - The message dynamically includes the uploaded file name using States.Format.
     - Example Parameters:
 ```json
-"TopicArn": "arn:aws:sns:region:account-id:png-alert-topic",   "Message.$": "States.Format('A PNG file was detected and processed: {}', $.image)" }
+"TopicArn": "arn:aws:sns:region:account-id:alert-topic",   "Message.$": "States.Format('A Non-image file file was detected and processed: {}', $.image)" }
 ```
 
 6. **SuccessState (Succeed)**
@@ -224,11 +227,11 @@ def lambda_handler(event, context):
 
 **Scenario:** Verify SNS notifications for image type detection.
 - **Method:**
-    1. *Temporarily modified the Choice State* to fetch a test using JPG (since it is not easy to get PNG images through this API).
+    1. *Temporarily modified the Choice State* to fetch a test using JPG (since it’s not easy to obtain other formats through this API, I planned to test with a PNG file at first).
     2. Ran the Step Function and observed state transitions:
-        - CheckIfPNG: correctly detected the file extension.
-        - AlertPNG: invoked as expected.
-        - PublishPNGAlert: published a message to SNS.
+        - CheckIfImage: correctly detected the file extension.
+        - AlertNotImage: invoked as expected.
+        - PublishNotImageAlert: published a message to SNS.
     3. Confirmed that SNS subscribers received the message successfully.
 - **Outcome:** Successfully confirmed alert mechanism works for extensions detection.
 <p align=center>
@@ -246,8 +249,8 @@ The Step Functions workflow (DogUploaderPipeline) runs under a dedicated IAM rol
 **StepFunctions-DogUploaderPipeline-role
 
 This role is assumed by Step Functions to execute all tasks in the workflow. To function properly, it required:
-- **Lambda invocation permissions**: The role must have _lambda:InvokeFunction_ on all Lambda functions used in the pipeline, such as FetchDogImage**, **UploadToS3**, **LogToDynamoDB**, and **AlertPNG**.
-- **SNS publish permissions**: To send alerts when a .png file is detected, the role needs _sns:Publish_ access to the SNS topic (png-alert-topic).
+- **Lambda invocation permissions**: The role must have _lambda:InvokeFunction_ on all Lambda functions used in the pipeline, such as FetchDogImage**, **UploadToS3**, **LogToDynamoDB**, and **AlertNotImage**.
+- **SNS publish permissions**: To send alerts when a non-image file file is detected, the role needs _sns:Publish_ access to the SNS topic (alert-topic).
 - **S3 read/write permissions**: While the Lambda functions interact with S3 directly, Step Functions relies on the Lambda role, so the Lambda role also needed _s3:PutObject_ access for uploading images.
 - **DynamoDB write permissions**: To allow the **LogToDynamoDB** function to insert image metadata into the table, the role required dynamodb:PutItem permission on that table’s ARN.
 ![](https://github.com/mizhare/dog-api-pipeline/blob/main/images/uploader_role_permissions.png)
