@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 instance for AWS Dog API Pipeline testing and monitoring
+
+Resources:
+  DogApiEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0c02fb55956c7d316  # Amazon Linux 2 (us-east-1)
+      KeyName: doapi-keypair
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: DogApiInstance
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y git python3
+          cd /home/ec2-user
+          git clone https://github.com/seu-usuario/aws-dog-api-pipeline.git
+          cd aws-dog-api-pipeline
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          echo "Setup completed successfully!" > /home/ec2-user/setup.log
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and HTTP
+      VpcId: vpc-00fade6970aeb3218
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: DogApiEC2SG

@@ -1,0 +1,27 @@
+name: Deploy EC2 Instance
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name dogapi-ec2-stack \
+            --template-file infra/ec2-instance.yml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              KeyName=dogapi-keypair \
+              VpcId=vpc-0a12b34c56d789ef0

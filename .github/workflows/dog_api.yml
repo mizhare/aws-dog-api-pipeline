@@ -1,25 +1,78 @@
-name: Dog API Ingestion
+name: Dog API Pipeline Deployment
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *' # hourly
+    - cron: '0 * * * *'
 
 jobs:
-  ingest_dog:
+  deploy_pipeline:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+
       - name: Install dependencies
-        run: pip install requests boto3
-      - name: Run ingestion
+        run: pip install boto3 requests
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DOG }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DOG }}
+          aws-region: us-east-1
+
+      - name: Deploy UploadToS3 Lambda
+        run: |
+          zip -r UploadToS3.zip src/lambda/upload_to_s3/*
+          aws lambda create-function \
+            --function-name UploadToS3 \
+            --runtime python3.11 \
+            --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_UPLOAD }} \
+            --handler app.lambda_handler \
+            --zip-file fileb://UploadToS3.zip \
+            || aws lambda update-function-code --function-name UploadToS3 --zip-file fileb://UploadToS3.zip
+
+      - name: Deploy LogToDynamoDB Lambda
+        run: |
+          zip -r LogToDynamoDB.zip src/lambda/log_to_dynamodb/*
+          aws lambda create-function \
+            --function-name LogToDynamoDB \
+            --runtime python3.11 \
+            --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_LOG }} \
+            --handler app.lambda_handler \
+            --zip-file fileb://LogToDynamoDB.zip \
+            || aws lambda update-function-code --function-name LogToDynamoDB --zip-file fileb://LogToDynamoDB.zip
+
+      - name: Deploy AlertNotImage Lambda
+        run: |
+          zip -r AlertNotImage.zip src/lambda/alert_not_image/*
+          aws lambda create-function \
+            --function-name AlertNotImage \
+            --runtime python3.11 \
+            --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_ALERT }} \
+            --handler app.lambda_handler \
+            --zip-file fileb://AlertPNG.zip \
+            || aws lambda update-function-code --function-name AlertPNG --zip-file fileb://AlertPNG.zip
+
+      - name: Deploy Step Functions State Machine
+        run: |
+          aws stepfunctions create-state-machine \
+            --name DogApiPipelineStateMachine \
+            --definition file://statemachine/definition.asl.json \
+            --role-arn ${{ secrets.AWS_STEP_FUNCTIONS_ROLE_ARN }} \
+            || aws stepfunctions update-state-machine \
+               --state-machine-arn ${{ secrets.AWS_STEP_FUNCTIONS_ARN }} \
+               --definition file://statemachine/definition.asl.json
+
+      - name: Run ingestion script
         env:
-          AWS_ACCESS_KEY_ID_DOG: ${{ secrets.AWS_ACCESS_KEY_ID_DOG }}
-          AWS_SECRET_ACCESS_KEY_DOG: ${{ secrets.AWS_SECRET_ACCESS_KEY_DOG }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_DOG }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_DOG }}
           AWS_BUCKET_DOG: ${{ secrets.AWS_BUCKET_DOG }}
           AWS_REGION: "us-east-1"
-        run: python ingest_dog.py
+        run: python src/ingest_dog.py
