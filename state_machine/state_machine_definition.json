@@ -1,0 +1,65 @@
+{
+  "Comment": "Dog API Pipeline with DynamoDB logging and format validation",
+  "StartAt": "FetchAndUploadDogImage",
+  "States": {
+    "FetchAndUploadDogImage": {
+      "Type": "Task",
+      "Resource": "${UploadToS3LambdaArn}",
+      "Next": "CheckIfImage"
+    },
+    "CheckIfImage": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Not": {
+            "Or": [
+              { "Variable": "$.uploaded_image", "StringMatches": "*jpg" },
+              { "Variable": "$.uploaded_image", "StringMatches": "*jpeg" },
+              { "Variable": "$.uploaded_image", "StringMatches": "*png" }
+            ]
+          },
+          "Next": "MarkAsAlertTriggered"
+        }
+      ],
+      "Default": "MarkAsNoAlert"
+    },
+    "MarkAsAlertTriggered": {
+      "Type": "Pass",
+      "Result": { "alert_triggered": true },
+      "ResultPath": "$.alert",
+      "Next": "AlertPNG"
+    },
+    "MarkAsNoAlert": {
+      "Type": "Pass",
+      "Result": { "alert_triggered": false },
+      "ResultPath": "$.alert",
+      "Next": "LogToDynamoDB"
+    },
+    "AlertPNG": {
+      "Type": "Task",
+      "Resource": "${AlertPNGLambdaArn}",
+      "Next": "PublishNotImageAlert"
+    },
+    "PublishNotImageAlert": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${SnsTopicArn}",
+        "Message.$": "States.Format('⚠️ Non-image file detected and processed: {}', $.uploaded_image)"
+      },
+      "Next": "LogToDynamoDB"
+    },
+    "LogToDynamoDB": {
+      "Type": "Task",
+      "Resource": "${LogToDynamoDBLambdaArn}",
+      "End": true,
+      "Parameters": {
+        "uploaded_image.$": "$.uploaded_image",
+        "image_url.$": "$.image_url",
+        "upload_timestamp.$": "$$.State.EnteredTime",
+        "file_type.$": "States.ArrayGetItem(States.StringSplit($.uploaded_image, '.'), 1)",
+        "alert_triggered.$": "$.alert.alert_triggered"
+      }
+    }
+  }
+}
