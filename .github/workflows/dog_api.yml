@@ -79,11 +79,11 @@ jobs:
         run: |
           aws stepfunctions create-state-machine \
             --name DogApiPipelineStateMachine \
-            --definition file://statemachine/state_machine_definition.json \
+            --definition file://state_machine/state_machine_definition.json \
             --role-arn ${{ secrets.AWS_STEP_FUNCTIONS_ROLE_ARN }} \
           || aws stepfunctions update-state-machine \
             --state-machine-arn ${{ secrets.AWS_STEP_FUNCTIONS_ARN }} \
-            --definition file://statemachine/state_machine_definition.json
+            --definition file://state_machine/state_machine_definition.json
 
       # -------------------------------
       # Run ingestion script
