@@ -70,7 +70,7 @@ jobs:
             --zip-file fileb://src/lambdas/alert_not_image/AlertPNG.zip \
           || aws lambda update-function-code \
             --function-name AlertPNG \
-            --zip-file fileb://src/lambdas/alert_png/AlertPNG.zip
+            --zip-file fileb://src/lambdas/alert_not_image/AlertPNG.zip
 
       # -------------------------------
       # Deploy Step Functions State Machine
