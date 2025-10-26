@@ -71,6 +71,18 @@ jobs:
           || aws lambda update-function-code \
             --function-name AlertPNG \
             --zip-file fileb://src/lambdas/alert_not_image/AlertPNG.zip
+
+      # -------------------------------
+      # Prepare Step Functions definition with ARNs from secrets
+      # -------------------------------
+      - name: Prepare Step Functions definition
+        run: |
+          sed -e "s|\${UPLOAD_TO_S3_LAMBDA_ARN}|${{ secrets.UPLOAD_TO_S3_LAMBDA_ARN }}|g" \
+              -e "s|\${ALERT_PNG_LAMBDA_ARN}|${{ secrets.ALERT_PNG_LAMBDA_ARN }}|g" \
+              -e "s|\${LOG_TO_DYNAMODB_LAMBDA_ARN}|${{ secrets.LOG_TO_DYNAMODB_LAMBDA_ARN }}|g" \
+              -e "s|\${SNS_TOPIC_ARN}|${{ secrets.SNS_TOPIC_ARN }}|g" \
+              state_machine/state_machine_definition.json > tmp_state_machine.json
+
       # -------------------------------
       # Deploy Step Functions
       # -------------------------------
@@ -78,11 +90,12 @@ jobs:
         run: |
           aws stepfunctions create-state-machine \
             --name DogApiPipelineStateMachine \
-            --definition file://state_machine/state_machine_definition.json \
+            --definition file://tmp_state_machine.json \
             --role-arn ${{ secrets.AWS_STEP_FUNCTIONS_ROLE_ARN }} \
           || aws stepfunctions update-state-machine \
             --state-machine-arn ${{ secrets.AWS_STEP_FUNCTIONS_ARN }} \
-            --definition file://state_machine/state_machine_definition.json
+            --definition file://tmp_state_machine.json
+
       # -------------------------------
       # Run ingestion script
       # -------------------------------
