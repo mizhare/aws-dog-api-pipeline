@@ -2,16 +2,16 @@ name: Dog API Pipeline Deployment
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  schedule:
+    - cron: '0 * * * *'
 
 jobs:
   deploy_pipeline:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -29,47 +29,77 @@ jobs:
           aws-region: us-east-1
 
       # -------------------------------
-      # Package all Lambdas
+      # Package and Deploy UploadToS3 Lambda
       # -------------------------------
-      - name: Package Lambdas
+      - name: Package UploadToS3 Lambda
         run: |
-          for lambda_dir in src/lambdas/*; do
-            lambda_name=$(basename $lambda_dir)
-            zip_file="${lambda_name}.zip"
-            cd $lambda_dir
-            zip -r ../../../$zip_file . > /dev/null
-            cd ../../../
-            echo "$zip_file created"
-          done
+          echo "Verificando arquivos..."
+          ls src/lambdas/upload_to_s3
+          cd src/lambdas/upload_to_s3
+          zip -r ../../../UploadToS3.zip .
+          cd ../../../
+          echo "UploadToS3.zip criado com sucesso."
+
+      - name: Deploy UploadToS3 Lambda
+        run: |
+          aws lambda create-function \
+            --function-name UploadToS3 \
+            --runtime python3.11 \
+            --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_UPLOAD }} \
+            --handler lambda_function.lambda_handler \
+            --zip-file fileb://UploadToS3.zip \
+          || aws lambda update-function-code \
+            --function-name UploadToS3 \
+            --zip-file fileb://UploadToS3.zip
 
       # -------------------------------
-      # Deploy Lambdas
+      # Package and Deploy LogToDynamoDB Lambda
       # -------------------------------
-      - name: Deploy Lambdas
+      - name: Package LogToDynamoDB Lambda
         run: |
-          declare -A roles=(
-            ["upload_to_s3"]="${{ secrets.AWS_LAMBDA_ROLE_ARN_UPLOAD }}"
-            ["log_to_dynamodb"]="${{ secrets.AWS_LAMBDA_ROLE_ARN_LOG }}"
-            ["alert_png"]="${{ secrets.AWS_LAMBDA_ROLE_ARN_ALERT }}"
-          )
-          for zip_file in *.zip; do
-            lambda_name=$(basename $zip_file .zip)
-            role=${roles[$lambda_name]}
-            aws lambda create-function \
-              --function-name $lambda_name \
-              --runtime python3.11 \
-              --role $role \
-              --handler lambda_function.lambda_handler \
-              --zip-file fileb://$zip_file \
-              || aws lambda update-function-code \
-                --function-name $lambda_name \
-                --zip-file fileb://$zip_file
-          done
+          ls src/lambdas/log_to_dynamodb
+          cd src/lambdas/log_to_dynamodb
+          zip -r ../../../LogToDynamoDB.zip .
+          cd ../../../
+
+      - name: Deploy LogToDynamoDB Lambda
+        run: |
+          aws lambda create-function \
+            --function-name LogToDynamoDB \
+            --runtime python3.11 \
+            --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_LOG }} \
+            --handler lambda_function.lambda_handler \
+            --zip-file fileb://LogToDynamoDB.zip \
+          || aws lambda update-function-code \
+            --function-name LogToDynamoDB \
+            --zip-file fileb://LogToDynamoDB.zip
 
       # -------------------------------
-      # Deploy Step Functions
+      # Package and Deploy AlertPNG Lambda
       # -------------------------------
-      - name: Deploy Step Functions
+      - name: Package AlertPNG Lambda
+        run: |
+          ls src/lambdas/alert_png
+          cd src/lambdas/alert_png
+          zip -r ../../../AlertPNG.zip .
+          cd ../../../
+
+      - name: Deploy AlertPNG Lambda
+        run: |
+          aws lambda create-function \
+            --function-name AlertPNG \
+            --runtime python3.11 \
+            --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_ALERT }} \
+            --handler lambda_function.lambda_handler \
+            --zip-file fileb://AlertPNG.zip \
+          || aws lambda update-function-code \
+            --function-name AlertPNG \
+            --zip-file fileb://AlertPNG.zip
+
+      # -------------------------------
+      # Deploy Step Functions State Machine
+      # -------------------------------
+      - name: Deploy Step Functions State Machine
         run: |
           aws stepfunctions create-state-machine \
             --name DogApiPipelineStateMachine \
@@ -78,3 +108,14 @@ jobs:
           || aws stepfunctions update-state-machine \
             --state-machine-arn ${{ secrets.AWS_STEP_FUNCTIONS_ARN }} \
             --definition file://statemachine/definition.asl.json
+
+      # -------------------------------
+      # Run ingestion script
+      # -------------------------------
+      - name: Run ingestion script
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_DOG }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_DOG }}
+          AWS_BUCKET_DOG: ${{ secrets.AWS_BUCKET_DOG }}
+          AWS_REGION: "us-east-1"
+        run: python src/ingest_dog.py
