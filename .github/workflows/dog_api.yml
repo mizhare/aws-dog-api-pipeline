@@ -71,15 +71,18 @@ jobs:
           || aws lambda update-function-code \
             --function-name AlertPNG \
             --zip-file fileb://src/lambdas/alert_not_image/AlertPNG.zip
-
       # -------------------------------
-      # Deploy Step Functions State Machine
+      # Deploy Step Functions
       # -------------------------------
-    - name: Deploy Step Functions State Machine
+      - name: Deploy Step Functions State Machine
         run: |
-          aws stepfunctions update-state-machine \
-            --state-machine-arn ${{ secrets.STEP_FUNCTION_ARN }} \
-            --definition file://statemachine/definition.asl.json
+          aws stepfunctions create-state-machine \
+            --name DogApiPipelineStateMachine \
+            --definition file://statemachine/state_machine_definition.json \
+            --role-arn ${{ secrets.AWS_STEP_FUNCTIONS_ROLE_ARN }} \
+          || aws stepfunctions update-state-machine \
+            --state-machine-arn ${{ secrets.AWS_STEP_FUNCTIONS_ARN }} \
+            --definition file://statemachine/state_machine_definition.json
       # -------------------------------
       # Run ingestion script
       # -------------------------------
