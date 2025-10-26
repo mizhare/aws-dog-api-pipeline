@@ -49,7 +49,7 @@ jobs:
             --function-name UploadToS3 \
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_UPLOAD }} \
-            --handler app.lambda_handler \
+            --handler lambda_function.lambda_handler \
             --zip-file fileb://UploadToS3.zip \
           || aws lambda update-function-code \
             --function-name UploadToS3 \
@@ -77,7 +77,7 @@ jobs:
             --function-name LogToDynamoDB \
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_LOG }} \
-            --handler app.lambda_handler \
+            --handler lambda_function.lambda_handler \
             --zip-file fileb://LogToDynamoDB.zip \
           || aws lambda update-function-code \
             --function-name LogToDynamoDB \
@@ -105,7 +105,7 @@ jobs:
             --function-name AlertPNG \
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_ALERT }} \
-            --handler app.lambda_handler \
+            --handler lambda_function.lambda_handler \
             --zip-file fileb://AlertPNG.zip \
           || aws lambda update-function-code \
             --function-name AlertPNG \
