@@ -58,7 +58,7 @@ jobs:
             --zip-file fileb://src/lambdas/log_to_dynamodb/LogToDynamoDB.zip
 
       # -------------------------------
-      # Deploy AlertPNG Lambda (AlertNotImage)
+      # Deploy AlertPNG Lambda
       # -------------------------------
       - name: Deploy AlertPNG Lambda
         run: |
