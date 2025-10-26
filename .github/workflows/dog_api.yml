@@ -8,6 +8,7 @@ on:
 jobs:
   deploy_pipeline:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
 
@@ -26,49 +27,106 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DOG }}
           aws-region: us-east-1
 
+      # -------------------------------
+      # UploadToS3 Lambda
+      # -------------------------------
+      - name: Package UploadToS3 Lambda
+        run: |
+          echo "Zip UploadToS3..."
+          if [ -d "src/lambdas/upload_to_s3" ]; then
+            cd src/lambdas/upload_to_s3
+            zip -r ../../../UploadToS3.zip . > /dev/null
+            cd ../../../
+            echo "UploadToS3.zip created sucessfully."
+          else
+            echo "src/lambdas/upload_to_s3 not found!"
+            exit 1
+          fi
+
       - name: Deploy UploadToS3 Lambda
         run: |
-          zip -r UploadToS3.zip src/lambdas/upload_to_s3/*
           aws lambda create-function \
             --function-name UploadToS3 \
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_UPLOAD }} \
             --handler app.lambda_handler \
             --zip-file fileb://UploadToS3.zip \
-            || aws lambda update-function-code --function-name UploadToS3 --zip-file fileb://UploadToS3.zip
+          || aws lambda update-function-code \
+            --function-name UploadToS3 \
+            --zip-file fileb://UploadToS3.zip
+
+      # -------------------------------
+      # LogToDynamoDB Lambda
+      # -------------------------------
+      - name: Package LogToDynamoDB Lambda
+        run: |
+          echo "Zip LogToDynamoDB..."
+          if [ -d "src/lambdas/log_to_dynamodb" ]; then
+            cd src/lambdas/log_to_dynamodb
+            zip -r ../../../LogToDynamoDB.zip . > /dev/null
+            cd ../../../
+            echo "LogToDynamoDB.zip created sucessfully."
+          else
+            echo "src/lambdas/log_to_dynamodb not found!"
+            exit 1
+          fi
 
       - name: Deploy LogToDynamoDB Lambda
         run: |
-          zip -r LogToDynamoDB.zip src/lambdas/log_to_dynamodb/*
           aws lambda create-function \
             --function-name LogToDynamoDB \
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_LOG }} \
             --handler app.lambda_handler \
             --zip-file fileb://LogToDynamoDB.zip \
-            || aws lambda update-function-code --function-name LogToDynamoDB --zip-file fileb://LogToDynamoDB.zip
+          || aws lambda update-function-code \
+            --function-name LogToDynamoDB \
+            --zip-file fileb://LogToDynamoDB.zip
 
-      - name: Deploy AlertNotImage Lambda
+      # -------------------------------
+      # AlertPNG Lambda (AlertNotImage)
+      # -------------------------------
+      - name: Package AlertPNG Lambda
         run: |
-          zip -r AlertNotImage.zip src/lambdas/alert_not_image/*
+          echo "Zip AlertPNG..."
+          if [ -d "src/lambdas/alert_png" ]; then
+            cd src/lambdas/alert_png
+            zip -r ../../../AlertPNG.zip . > /dev/null
+            cd ../../../
+            echo "AlertPNG.zip created sucessfully."
+          else
+            echo "src/lambdas/alert_png not found"
+            exit 1
+          fi
+
+      - name: Deploy AlertPNG Lambda
+        run: |
           aws lambda create-function \
-            --function-name AlertNotImage \
+            --function-name AlertPNG \
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_ALERT }} \
             --handler app.lambda_handler \
             --zip-file fileb://AlertPNG.zip \
-            || aws lambda update-function-code --function-name AlertPNG --zip-file fileb://AlertPNG.zip
+          || aws lambda update-function-code \
+            --function-name AlertPNG \
+            --zip-file fileb://AlertPNG.zip
 
+      # -------------------------------
+      # Step Functions Deployment
+      # -------------------------------
       - name: Deploy Step Functions State Machine
         run: |
           aws stepfunctions create-state-machine \
             --name DogApiPipelineStateMachine \
             --definition file://statemachine/definition.asl.json \
             --role-arn ${{ secrets.AWS_STEP_FUNCTIONS_ROLE_ARN }} \
-            || aws stepfunctions update-state-machine \
-               --state-machine-arn ${{ secrets.AWS_STEP_FUNCTIONS_ARN }} \
-               --definition file://statemachine/definition.asl.json
+          || aws stepfunctions update-state-machine \
+            --state-machine-arn ${{ secrets.AWS_STEP_FUNCTIONS_ARN }} \
+            --definition file://statemachine/definition.asl.json
 
+      # -------------------------------
+      # Run ingestion script
+      # -------------------------------
       - name: Run ingestion script
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_DOG }}
