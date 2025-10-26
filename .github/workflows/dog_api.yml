@@ -28,21 +28,8 @@ jobs:
           aws-region: us-east-1
 
       # -------------------------------
-      # UploadToS3 Lambda
+      # Deploy UploadToS3 Lambda
       # -------------------------------
-      - name: Package UploadToS3 Lambda
-        run: |
-          echo "Packaging UploadToS3 Lambda..."
-          if [ -d "src/lambdas/upload_to_s3" ]; then
-            cd src/lambdas/upload_to_s3
-            zip -r ../../../UploadToS3.zip . > /dev/null
-            cd ../../../
-            echo "UploadToS3.zip created successfully."
-          else
-            echo "Directory src/lambdas/upload_to_s3 not found!"
-            exit 1
-          fi
-
       - name: Deploy UploadToS3 Lambda
         run: |
           aws lambda create-function \
@@ -50,27 +37,14 @@ jobs:
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_UPLOAD }} \
             --handler lambda_function.lambda_handler \
-            --zip-file fileb://UploadToS3.zip \
+            --zip-file fileb://src/lambdas/upload_to_s3/UploadToS3.zip \
           || aws lambda update-function-code \
             --function-name UploadToS3 \
-            --zip-file fileb://UploadToS3.zip
+            --zip-file fileb://src/lambdas/upload_to_s3/UploadToS3.zip
 
       # -------------------------------
-      # LogToDynamoDB Lambda
+      # Deploy LogToDynamoDB Lambda
       # -------------------------------
-      - name: Package LogToDynamoDB Lambda
-        run: |
-          echo "Packaging LogToDynamoDB Lambda..."
-          if [ -d "src/lambdas/log_to_dynamodb" ]; then
-            cd src/lambdas/log_to_dynamodb
-            zip -r ../../../LogToDynamoDB.zip . > /dev/null
-            cd ../../../
-            echo "LogToDynamoDB.zip created successfully."
-          else
-            echo "Directory src/lambdas/log_to_dynamodb not found!"
-            exit 1
-          fi
-
       - name: Deploy LogToDynamoDB Lambda
         run: |
           aws lambda create-function \
@@ -78,27 +52,14 @@ jobs:
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_LOG }} \
             --handler lambda_function.lambda_handler \
-            --zip-file fileb://LogToDynamoDB.zip \
+            --zip-file fileb://src/lambdas/log_to_dynamodb/LogToDynamoDB.zip \
           || aws lambda update-function-code \
             --function-name LogToDynamoDB \
-            --zip-file fileb://LogToDynamoDB.zip
+            --zip-file fileb://src/lambdas/log_to_dynamodb/LogToDynamoDB.zip
 
       # -------------------------------
-      # AlertPNG Lambda (AlertNotImage)
+      # Deploy AlertPNG Lambda
       # -------------------------------
-      - name: Package AlertPNG Lambda
-        run: |
-          echo "Packaging AlertPNG Lambda..."
-          if [ -d "src/lambdas/alert_png" ]; then
-            cd src/lambdas/alert_png
-            zip -r ../../../AlertPNG.zip . > /dev/null
-            cd ../../../
-            echo "AlertPNG.zip created successfully."
-          else
-            echo "Directory src/lambdas/alert_png not found!"
-            exit 1
-          fi
-
       - name: Deploy AlertPNG Lambda
         run: |
           aws lambda create-function \
@@ -106,13 +67,13 @@ jobs:
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_ALERT }} \
             --handler lambda_function.lambda_handler \
-            --zip-file fileb://AlertPNG.zip \
+            --zip-file fileb://src/lambdas/alert_png/AlertPNG.zip \
           || aws lambda update-function-code \
             --function-name AlertPNG \
-            --zip-file fileb://AlertPNG.zip
+            --zip-file fileb://src/lambdas/alert_png/AlertPNG.zip
 
       # -------------------------------
-      # Step Functions Deployment
+      # Deploy Step Functions State Machine
       # -------------------------------
       - name: Deploy Step Functions State Machine
         run: |
