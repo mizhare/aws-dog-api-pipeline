@@ -3,7 +3,7 @@ name: Dog API Pipeline Deployment
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # rodar a cada hora
+    - cron: '0 * * * *'
 
 jobs:
   deploy_pipeline:
