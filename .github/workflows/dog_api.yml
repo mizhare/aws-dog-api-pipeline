@@ -75,16 +75,11 @@ jobs:
       # -------------------------------
       # Deploy Step Functions State Machine
       # -------------------------------
-      - name: Deploy Step Functions State Machine
+    - name: Deploy Step Functions State Machine
         run: |
-          aws stepfunctions create-state-machine \
-            --name DogApiPipelineStateMachine \
-            --definition file://state_machine/state_machine_definition.json \
-            --role-arn ${{ secrets.AWS_STEP_FUNCTIONS_ROLE_ARN }} \
-          || aws stepfunctions update-state-machine \
-            --state-machine-arn ${{ secrets.AWS_STEP_FUNCTIONS_ARN }} \
-            --definition file://state_machine/state_machine_definition.json
-
+          aws stepfunctions update-state-machine \
+            --state-machine-arn ${{ secrets.STEP_FUNCTION_ARN }} \
+            --definition file://statemachine/definition.asl.json
       # -------------------------------
       # Run ingestion script
       # -------------------------------
