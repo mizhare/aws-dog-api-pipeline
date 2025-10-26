@@ -3,7 +3,7 @@ name: Dog API Pipeline Deployment
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 * * * *'  # rodar a cada hora
 
 jobs:
   deploy_pipeline:
@@ -58,7 +58,7 @@ jobs:
             --zip-file fileb://src/lambdas/log_to_dynamodb/LogToDynamoDB.zip
 
       # -------------------------------
-      # Deploy AlertPNG Lambda
+      # Deploy AlertPNG Lambda (AlertNotImage)
       # -------------------------------
       - name: Deploy AlertPNG Lambda
         run: |
