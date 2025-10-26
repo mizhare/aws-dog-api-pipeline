@@ -22,6 +22,6 @@ jobs:
             --stack-name dogapi-ec2-stack \
             --template-file infra/ec2-instance.yml \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides \
-              KeyName=dogapi-keypair \
-              VpcId=vpc-0a12b34c56d789ef0
+            --parameter-overrides KeyName=dogapi-keypair VpcId=vpc-0a12b34c56d789ef0 \
+            --no-fail-on-empty-changeset \
+            --debug
