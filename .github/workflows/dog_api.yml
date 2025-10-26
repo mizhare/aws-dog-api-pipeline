@@ -28,7 +28,7 @@ jobs:
 
       - name: Deploy UploadToS3 Lambda
         run: |
-          zip -r UploadToS3.zip src/lambda/upload_to_s3/*
+          zip -r UploadToS3.zip src/lambdas/upload_to_s3/*
           aws lambda create-function \
             --function-name UploadToS3 \
             --runtime python3.11 \
@@ -39,7 +39,7 @@ jobs:
 
       - name: Deploy LogToDynamoDB Lambda
         run: |
-          zip -r LogToDynamoDB.zip src/lambda/log_to_dynamodb/*
+          zip -r LogToDynamoDB.zip src/lambdas/log_to_dynamodb/*
           aws lambda create-function \
             --function-name LogToDynamoDB \
             --runtime python3.11 \
@@ -50,7 +50,7 @@ jobs:
 
       - name: Deploy AlertNotImage Lambda
         run: |
-          zip -r AlertNotImage.zip src/lambda/alert_not_image/*
+          zip -r AlertNotImage.zip src/lambdas/alert_not_image/*
           aws lambda create-function \
             --function-name AlertNotImage \
             --runtime python3.11 \
