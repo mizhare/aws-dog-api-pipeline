@@ -4,7 +4,7 @@
   "States": {
     "FetchAndUploadDogImage": {
       "Type": "Task",
-      "Resource": "${UploadToS3LambdaArn}",
+      "Resource": "${UPLOAD_TO_S3_LAMBDA_ARN}",
       "Next": "CheckIfImage"
     },
     "CheckIfImage": {
@@ -37,21 +37,21 @@
     },
     "AlertPNG": {
       "Type": "Task",
-      "Resource": "${AlertPNGLambdaArn}",
+      "Resource": "${ALERT_PNG_LAMBDA_ARN}",
       "Next": "PublishNotImageAlert"
     },
     "PublishNotImageAlert": {
       "Type": "Task",
       "Resource": "arn:aws:states:::sns:publish",
       "Parameters": {
-        "TopicArn": "${SnsTopicArn}",
+        "TopicArn": "${SNS_TOPIC_ARN}",
         "Message.$": "States.Format('⚠️ Non-image file detected and processed: {}', $.uploaded_image)"
       },
       "Next": "LogToDynamoDB"
     },
     "LogToDynamoDB": {
       "Type": "Task",
-      "Resource": "${LogToDynamoDBLambdaArn}",
+      "Resource": "${LOG_TO_DYNAMODB_LAMBDA_ARN}",
       "End": true,
       "Parameters": {
         "uploaded_image.$": "$.uploaded_image",
