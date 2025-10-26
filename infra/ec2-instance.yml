@@ -19,7 +19,7 @@ Resources:
           yum update -y
           yum install -y git python3
           cd /home/ec2-user
-          git clone https://github.com/seu-usuario/aws-dog-api-pipeline.git
+          git clone https://github.com/mizhare/aws-dog-api-pipeline.git
           cd aws-dog-api-pipeline
           python3 -m venv venv
           source venv/bin/activate
