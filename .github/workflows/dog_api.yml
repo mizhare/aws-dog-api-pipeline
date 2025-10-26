@@ -67,7 +67,7 @@ jobs:
             --runtime python3.11 \
             --role ${{ secrets.AWS_LAMBDA_ROLE_ARN_ALERT }} \
             --handler lambda_function.lambda_handler \
-            --zip-file fileb://src/lambdas/alert_png/AlertPNG.zip \
+            --zip-file fileb://src/lambdas/alert_not_image/AlertPNG.zip \
           || aws lambda update-function-code \
             --function-name AlertPNG \
             --zip-file fileb://src/lambdas/alert_png/AlertPNG.zip
